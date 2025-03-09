@@ -19,6 +19,12 @@ class TesteWebhook(commands.Cog):
                 # Obtém os dados recebidos no webhook (normalmente em formato JSON)
                 data = request.get_json()
 
+                if data and "data" in data and "id" in data["data"]:
+                    pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago
+                    
+                    # Aqui você pode consultar o status do pagamento na API do Mercado Pago
+                    print(f"Pagamento recebido! ID: {pagamento_id}")
+
                 # Aqui você pode fazer o que quiser com os dados, como salvar no banco de dados, processar etc.
                 print("Mensagem recebida do Mercado Pago:")
                 print(json.dumps(data, indent=4))  # Exibe os dados em formato legível

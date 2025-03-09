@@ -12,6 +12,17 @@ class PixCog(commands.Cog):
         self.bot = bot
         self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")  # Substitua pelo seu Access Token
 
+    async def devolveChaves(self, produtos):
+        print("devolvechaves")
+        for chave in produtos:
+            conn = sqlite3.connect('produtos.db')
+            cursor = conn.cursor()
+            cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (0, chave[0],))
+            conn.commit()
+            conn.close()
+        cog1 = self.bot.get_cog("ProdutosCog")
+        await cog1.atualiza_estoque()
+
     async def pix(self, user, thread):
 
         conn = sqlite3.connect('produtos.db')
@@ -119,25 +130,11 @@ class PixCog(commands.Cog):
 
             except KeyError:
                 await thread.send("❌ Ocorreu um erro ao gerar o QR Code para o pagamento PIX.")
-                for chave in produtos:
-                    conn = sqlite3.connect('produtos.db')
-                    cursor = conn.cursor()
-                    cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (0, chave[0],))
-                    conn.commit()
-                    conn.close()
-                cog1 = self.bot.get_cog("ProdutosCog")
-                await cog1.atualiza_estoque()
+                await self.devolveChaves(produtos)
         else:
             error_message = payment_response.get("response", {}).get("message", "Erro desconhecido")
             await thread.send(f"❌ Ocorreu um erro ao gerar o pagamento: `{error_message}`")
-            for chave in produtos:
-                conn = sqlite3.connect('produtos.db')
-                cursor = conn.cursor()
-                cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (0, chave[0],))
-                conn.commit()
-                conn.close()
-            cog1 = self.bot.get_cog("ProdutosCog")
-            await cog1.atualiza_estoque()
+            await self.devolveChaves(produtos)
 
     async def verificar_pagamento(self, payment_id: int, canal: discord.TextChannel, valor: float, produtos, user):
         """
@@ -219,14 +216,7 @@ class PixCog(commands.Cog):
                             await canal.delete()
                         except:
                             print('chat do carrinho nao existe mais')
-                    for chave in produtos:
-                        conn = sqlite3.connect('produtos.db')
-                        cursor = conn.cursor()
-                        cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (0, chave[0],))
-                        conn.commit()
-                        conn.close()
-                    cog1 = self.bot.get_cog("ProdutosCog")
-                    await cog1.atualiza_estoque()
+                    await self.devolveChaves(produtos)
 
                     cancel_data = {
                         "status": "cancelled"
@@ -241,14 +231,7 @@ class PixCog(commands.Cog):
                     continue  # Continua verificando
                 else:
                     await canal.send(f"❌ O pagamento de R${valor:.2f} foi cancelado ou recusado.")
-                    for chave in produtos:
-                        conn = sqlite3.connect('produtos.db')
-                        cursor = conn.cursor()
-                        cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (0, chave[0],))
-                        conn.commit()
-                        conn.close()
-                    cog1 = self.bot.get_cog("ProdutosCog")
-                    await cog1.atualiza_estoque()
+                    await self.devolveChaves(produtos)
                     break
             else:
                 await canal.send("❌ Erro ao verificar o status do pagamento.")
