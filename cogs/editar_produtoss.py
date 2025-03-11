@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import sqlite3
-import asyncio
+import json
 
 conn = sqlite3.connect('produtos.db')
 cursor = conn.cursor()
@@ -451,6 +451,28 @@ class ProdutosCog(commands.Cog):
             conn.close()
             await interact.response.send_message("Vendas apagadas com sucesso", ephemeral=True)
             await self.atualiza_estoque()
+
+    @discord.app_commands.command()
+    async def listar_pagamentos_abertos(self, interact:discord.Interaction):
+        print('listar vendas')
+        cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
+        if cargo_obeso:
+            conn = sqlite3.connect('produtos.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT payment_id, canal_id, usuario_id, produtos FROM pagamentosAbertos")
+            abertos = cursor.fetchall()
+            conn.close()
+
+            if not abertos:
+                await interact.response.send_message("Nenhuma venda feita.", ephemeral=True)
+                return
+            
+            embed = discord.Embed(title="📦 Lista de Pagamentos em Aberto", color=discord.Color.blue())      
+            for payment_id, canal_id, usuario_id, produtos in abertos:
+                produtos_tabela = json.loads(produtos)
+                embed.add_field(name=payment_id, value=f"ID Usuario: {usuario_id}\nID Produtos: {produtos_tabela}\nCanal: {canal_id}", inline=False)
+
+            await interact.response.send_message(embed=embed, ephemeral=True)
 
 
 async def setup(bot):

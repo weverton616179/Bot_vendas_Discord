@@ -2,4 +2,6 @@ discord.py
 mercadopago
 qrcode
 Pillow
-Flask>=2.0.0
+Flask==2.3.2
+gunicorn==20.1.0
+uvicorn==0.22.0
