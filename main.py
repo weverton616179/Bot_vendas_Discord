@@ -61,6 +61,14 @@ def criar_tabelas():
         FOREIGN KEY (produto_id) REFERENCES produtos(id)
     )
     ''')
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS pagamentosAbertos (
+        payment_id INTEGER PRIMARY KEY,
+        canal_id INTEGER NOT NULL,
+        usuario_id INTEGER NOT NULL,
+        produtos TEXT NOT NULL
+    )""")
+
     conn.commit()
     conn.close()
 
