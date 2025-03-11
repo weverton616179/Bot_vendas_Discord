@@ -2,4 +2,4 @@ discord.py
 mercadopago
 qrcode
 Pillow
-flask
+Flask>=2.0.0
