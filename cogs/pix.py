@@ -4,6 +4,8 @@ from discord.ext import commands
 import sqlite3
 import qrcode
 from io import BytesIO
+import json
+import threading
 import asyncio
 import datetime
 
@@ -254,104 +256,104 @@ class PixCog(commands.Cog):
     def start_flask_server(self):
         app = Flask(__name__)
         @app.route('/webhook/mercadopago', methods=['POST'])
-        async def webhook():
-            try:
-                data = request.get_json()
+        def webhook():
+            async def async_webhook():
+                try:
+                    data = request.get_json()
 
-                if data and "data" in data and "id" in data["data"]:
-                    pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago
-                    
-                    conn = sqlite3.connect('produtos.db')
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentos WHERE payment_id = ?", (pagamento_id,))
-                    resultado = cursor.fetchone()
-                    conn.close()
-
-                    if not resultado:
-                        print("Payment ID não encontrado.")
-                        # --------------------------------------------------------
-                        # depois programar para extornar o pagamento se tiver sido aprovado
-                        # ---------------------------------------------------
-                        return
-
-                    canal_id, usuario_id, produtos_json = resultado
-                    produtos = json.loads(produtos_json)  # Converter JSON de volta para lista
-                    usuario = await self.bot.fetch_user(usuario_id)
-                    canal = await self.bot.fetch_channel(canal_id)
-                    
-                    print(f"Pagamento recebido! ID: {pagamento_id}")
-
-                    conn = sqlite3.connect('produtos.db')
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM carrinho WHERE usuario = ?", (str(usuario_id),))
-                    conn.commit()
-                    conn.close()
-
-                    # Consulta o status do pagamento
-                    payment_response = self.sdk.payment().get(pagamento_id)
-                    if payment_response["status"] == 200:
-                        payment_info = payment_response["response"]
-                        status = payment_info["status"]
-                        #status = "approved"
-                        print(status)
-                        if status == "approved":
-                            await canal.send(f"✅ **Pagamento de confirmado!** Obrigado!")
-                            data_atual = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                            for id in produtos:
-                                print(id[0], 'perarararara', produtos)
-                                conn = sqlite3.connect('produtos.db')
-                                cursor = conn.cursor()
-                                cursor.execute(f"SELECT produto_id, chave FROM chaves_produtos WHERE id = {float(id[0])}")
-                                produtes = cursor.fetchall()
-                                conn.close()
-
-                                for produto_id, cheves in produtes:
-                                        conn = sqlite3.connect('produtos.db')
-                                        cursor = conn.cursor()
-                                        cursor.execute("SELECT preco FROM produtos WHERE id = ?", (produto_id,))
-                                        produto = cursor.fetchone()
-                                        conn.close()
-                                        
-
-                                        await canal.send(f"🔑 chave do produto {produto_id}: {cheves}")
-                                        conn = sqlite3.connect('produtos.db')
-                                        cursor = conn.cursor()
-                                        cursor.execute('''INSERT INTO vendas (produto_id, chave, usuario, valor, data)
-                                                        VALUES (?, ?, ?, ?, ?)''', 
-                                                    (produto_id, cheves, str(usuario_id), produto[0], data_atual))
-                                        conn.commit()
-                                        conn.close()
-
-                            for id in produtos:
-                                print(id[0], 'perarararara', produtos)
-                                conn = sqlite3.connect('produtos.db')
-                                cursor = conn.cursor()
-                                cursor.execute(f"SELECT produto_id, chave FROM chaves_produtos WHERE id = {float(id[0])}")
-                                produtes = cursor.fetchall()
-                                conn.close()
-
-                                try:
-                                    for produto_id, cheves in produtes:
-                                        await usuario.send(f"🔑 chave do produto {produto_id}: {cheves}")
-                                except:
-                                    await canal.send("🚨 SEU PRIVADO ESTÁ BLOQUEADO, os produtos não forma enviados diretamnete no seu privado")
-                                    break 
-                            await canal.edit(name=f"PAGO-{data_atual}_{str(usuario_id)}")
-                            await canal.edit(archived=True)
-                            
-                        elif status in ["pending", "in_process"]:
-                            print("pendente")  # Continua verificando
-                        else:
-                            await canal.send(f"❌ O pagamento foi cancelado ou recusado.")
-                            await self.devolveChaves(produtos)
-                            
-                    else:
-                        await canal.send("❌ Erro ao verificar o status do pagamento.")
+                    if data and "data" in data and "id" in data["data"]:
+                        pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago
                         
+                        conn = sqlite3.connect('produtos.db')
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentos WHERE payment_id = ?", (pagamento_id,))
+                        resultado = cursor.fetchone()
+                        conn.close()
 
-            except Exception as e:
-                print(f"Erro ao processar o webhook: {str(e)}")
-                return jsonify({'status': 'error', 'message': str(e)}), 500
+                        if not resultado:
+                            print("Payment ID não encontrado.")
+                            return
+
+                        canal_id, usuario_id, produtos_json = resultado
+                        produtos = json.loads(produtos_json)  # Converter JSON de volta para lista
+                        usuario = await self.bot.fetch_user(usuario_id)
+                        canal = await self.bot.fetch_channel(canal_id)
+                        
+                        print(f"Pagamento recebido! ID: {pagamento_id}")
+
+                        conn = sqlite3.connect('produtos.db')
+                        cursor = conn.cursor()
+                        cursor.execute("DELETE FROM carrinho WHERE usuario = ?", (str(usuario_id),))
+                        conn.commit()
+                        conn.close()
+
+                        # Consulta o status do pagamento
+                        payment_response = self.sdk.payment().get(pagamento_id)
+                        if payment_response["status"] == 200:
+                            payment_info = payment_response["response"]
+                            status = payment_info["status"]
+                            #status = "approved"
+                            print(status)
+                            if status == "approved":
+                                await canal.send(f"✅ **Pagamento de confirmado!** Obrigado!")
+                                data_atual = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                for id in produtos:
+                                    print(id[0], 'perarararara', produtos)
+                                    conn = sqlite3.connect('produtos.db')
+                                    cursor = conn.cursor()
+                                    cursor.execute(f"SELECT produto_id, chave FROM chaves_produtos WHERE id = {float(id[0])}")
+                                    produtes = cursor.fetchall()
+                                    conn.close()
+
+                                    for produto_id, cheves in produtes:
+                                            conn = sqlite3.connect('produtos.db')
+                                            cursor = conn.cursor()
+                                            cursor.execute("SELECT preco FROM produtos WHERE id = ?", (produto_id,))
+                                            produto = cursor.fetchone()
+                                            conn.close()
+                                            
+
+                                            await canal.send(f"🔑 chave do produto {produto_id}: {cheves}")
+                                            conn = sqlite3.connect('produtos.db')
+                                            cursor = conn.cursor()
+                                            cursor.execute('''INSERT INTO vendas (produto_id, chave, usuario, valor, data)
+                                                            VALUES (?, ?, ?, ?, ?)''', 
+                                                        (produto_id, cheves, str(usuario_id), produto[0], data_atual))
+                                            conn.commit()
+                                            conn.close()
+
+                                for id in produtos:
+                                    print(id[0], 'perarararara', produtos)
+                                    conn = sqlite3.connect('produtos.db')
+                                    cursor = conn.cursor()
+                                    cursor.execute(f"SELECT produto_id, chave FROM chaves_produtos WHERE id = {float(id[0])}")
+                                    produtes = cursor.fetchall()
+                                    conn.close()
+
+                                    try:
+                                        for produto_id, cheves in produtes:
+                                            await usuario.send(f"🔑 chave do produto {produto_id}: {cheves}")
+                                    except:
+                                        await canal.send("🚨 SEU PRIVADO ESTÁ BLOQUEADO, os produtos não forma enviados diretamnete no seu privado")
+                                        break 
+                                await canal.edit(name=f"PAGO-{data_atual}_{str(usuario_id)}")
+                                await canal.edit(archived=True)
+                                
+                            elif status in ["pending", "in_process"]:
+                                print("pendente")  # Continua verificando
+                            else:
+                                await canal.send(f"❌ O pagamento foi cancelado ou recusado.")
+                                await self.devolveChaves(produtos)
+                                
+                        else:
+                            await canal.send("❌ Erro ao verificar o status do pagamento.")
+                            
+
+                except Exception as e:
+                    print(f"Erro ao processar o webhook: {str(e)}")
+                    return jsonify({'status': 'error', 'message': str(e)}), 500
+
+            return app.ensure_sync(async_webhook)()
 
         flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=8000))
         flask_thread.start()
