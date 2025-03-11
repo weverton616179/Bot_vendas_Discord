@@ -1,32 +1,31 @@
 from discord.ext import commands
-from flask import Flask, request, jsonify
+from quart import Quart, request, jsonify
 import json
-import threading
+import asyncio
 
 class TesteWebhook(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.start_flask_server()
+        self.app = Quart(__name__)
+        self.setup_routes()
+        self.bot.loop.create_task(self.run_quart())
 
-    def start_flask_server(self):
-        # Cria uma instância do Flask
-        app = Flask(__name__)
-
+    def setup_routes(self):
         # Endpoint do Webhook
-        @app.route('/webhook/mercadopago', methods=['POST'])
+        @self.app.route('/webhook/mercadopago', methods=['POST'])
         async def webhook():
             try:
                 # Obtém os dados recebidos no webhook (normalmente em formato JSON)
-                data = request.get_json()
+                data = await request.get_json()
 
                 if data and "data" in data and "id" in data["data"]:
                     pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago
 
-                    payment_response = self.sdk.payment().get(pagamento_id)
-                    
                     # Aqui você pode consultar o status do pagamento na API do Mercado Pago
+                    # Exemplo fictício (substitua pelo SDK do Mercado Pago)
+                    payment_response = {"status": "approved"}  # Simulação de resposta
                     print(f"Pagamento recebido! ID: {pagamento_id}")
-                    print(f"Status pagamento: {payment_response["status"]}")
+                    print(f"Status pagamento: {payment_response['status']}")
 
                 # Aqui você pode fazer o que quiser com os dados, como salvar no banco de dados, processar etc.
                 print("Mensagem recebida do Mercado Pago:")
@@ -40,9 +39,9 @@ class TesteWebhook(commands.Cog):
                 print(f"Erro ao processar o webhook: {str(e)}")
                 return jsonify({'status': 'error', 'message': str(e)}), 500
 
-        # Inicia o Flask em uma thread separada
-        flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=8000))
-        flask_thread.start()
+    async def run_quart(self):
+        """Inicia o servidor Quart."""
+        await self.app.run_task(host='0.0.0.0', port=8000)
 
 # Função setup obrigatória
 async def setup(bot):
