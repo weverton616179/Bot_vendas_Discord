@@ -22,32 +22,61 @@ class TesteWebhook(commands.Cog):
 
                 if data and "data" in data and "id" in data["data"]:
                     pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago                  
-                    payment_response = self.sdk.payment().get(pagamento_id)
+                    payment_response = self.sdk.payment().get(pagamento_id)                    
+                    payment_info = payment_response["response"]
+                    status = payment_info["status"]
                     print(f"Pagamento recebido! ID: {pagamento_id}")
+                    print(f"status: {status}")
 
                     conn = sqlite3.connect('produtos.db')
                     cursor = conn.cursor()
                     cursor.execute(f"SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = {pagamento_id}")
                     abertos = cursor.fetchone()
-                    conn.close()
+                    conn.close()              
 
-                    #verificar se o pagamento foi aprovado e se o canal existe ainda
-                    #verificar se o pagamento foi aprovado sem o canal (extornar)
-                    #verificar se pagamento aprovado sem estar no banco (extornar)
-                    #se pagamento cancelado ou aprovado, apagar do banco dedados
+                    if status == "approved":
+                        print("aprovado")
+                        if abertos:
+                            print("ta no banco")
+                            canal_id, usuario_id, produtos = abertos
+                            produtos_tabela = json.loads(produtos)
+                            canal = self.bot.get_channel(canal_id)
 
-                    payment_info = payment_response["response"]
-                    status = payment_info["status"]
-                    print(f"status: {status}")
+                            if canal:
+                                print("canal existe, realizar entrega")
+                            else:
+                                print("canal nao existe, extornar")
+                                conn = sqlite3.connect('produtos.db')
+                                cursor = conn.cursor()
+                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (pagamento_id,))
+                                conn.commit()
+                                conn.close()
 
-                    if abertos:
-                        canal_id, usuario_id, produtos = abertos
-                        produtos_tabela = json.loads(produtos)
-                        print(canal_id, usuario_id, produtos_tabela)
-                    else:
-                        print(f"{pagamento_id} nao se encontra no banco de dados")
-                    
-                    
+                                refund = self.sdk.payment_refund(pagamento_id)
+                                if refund['status'] == 200:
+                                    print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
+                                else:
+                                    print("Erro ao realizar o estorno:", refund)
+
+                        else:
+                            print("nao ta no banco")
+                            refund = self.sdk.payment_refund(pagamento_id)
+                            if refund['status'] == 200:
+                                print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
+                            else:
+                                print("Erro ao realizar o estorno:", refund)
+
+                    elif status == "cancelled":
+                        print("cancelado")
+                        if abertos:
+                            print("cancelado mas ta no banco")
+                            conn = sqlite3.connect('produtos.db')
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (pagamento_id,))
+                            conn.commit()
+                            conn.close()
+                    elif status == "pending":
+                        print("pendente")                    
 
                 # print("Mensagem recebida do Mercado Pago:")
                 # print(json.dumps(data, indent=4))
