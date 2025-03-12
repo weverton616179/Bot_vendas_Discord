@@ -65,7 +65,7 @@ class TesteWebhook(commands.Cog):
 
                         else:
                             print("nao ta no banco")
-                            refund = self.sdk.payment_refund(pagamento_id)
+                            refund = self.sdk.refund().create(pagamento_id)
                             if refund['status'] == 200:
                                 print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
                             else:
