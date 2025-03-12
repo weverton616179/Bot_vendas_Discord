@@ -137,8 +137,14 @@ class PixCog(commands.Cog):
                             (payment_id, thread.id, user.id, produtos_json))
                 conn.commit()
                 conn.close()
+
+                conn = sqlite3.connect('produtos.db')
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM carrinho WHERE usuario = ?", (str(user.id),))
+                conn.commit()
+                conn.close()
                 # print(payment_id, thread.id, user.id, produtos_json)
-                await self.verificar_pagamento(payment_id, thread, arredonda, produtos, user)
+                # await self.verificar_pagamento(payment_id, thread, arredonda, produtos, user)
 
             except KeyError:
                 await thread.send("❌ Ocorreu um erro ao gerar o QR Code para o pagamento PIX.")
