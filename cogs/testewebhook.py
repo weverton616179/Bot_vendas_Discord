@@ -24,7 +24,6 @@ class TesteWebhook(commands.Cog):
                     pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago                  
                     payment_response = self.sdk.payment().get(pagamento_id)
                     print(f"Pagamento recebido! ID: {pagamento_id}")
-                    print(f"Status pagamento: {payment_response['status']}")
 
                     conn = sqlite3.connect('produtos.db')
                     cursor = conn.cursor()
@@ -32,14 +31,21 @@ class TesteWebhook(commands.Cog):
                     abertos = cursor.fetchone()
                     conn.close()
 
+                    #verificar se o pagamento foi aprovado e se o canal existe ainda
+                    #verificar se o pagamento foi aprovado sem o canal (extornar)
+                    #verificar se pagamento aprovado sem estar no banco (extornar)
+                    #se pagamento cancelado ou aprovado, apagar do banco dedados
 
+                    payment_info = payment_response["response"]
+                    status = payment_info["status"]
+                    print(f"status: {status}")
 
                     if abertos:
                         canal_id, usuario_id, produtos = abertos
                         produtos_tabela = json.loads(produtos)
                         print(canal_id, usuario_id, produtos_tabela)
                     else:
-                        print(f"{pagamento_id} nao se encontra no banco")
+                        print(f"{pagamento_id} nao se encontra no banco de dados")
                     
                     
 
