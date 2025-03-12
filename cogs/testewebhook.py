@@ -3,11 +3,13 @@ from discord.ext import commands
 from quart import Quart, request, jsonify
 import json
 import sqlite3
+import mercadopago
 
 class TesteWebhook(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.app = Quart(__name__)
+        self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")
         self.setup_routes()
         self.bot.loop.create_task(self.run_quart())
 
@@ -30,7 +32,7 @@ class TesteWebhook(commands.Cog):
                     abertos = cursor.fetchone()
                     conn.close()
 
-            
+
 
                     if abertos:
                         canal_id, usuario_id, produtos = abertos
