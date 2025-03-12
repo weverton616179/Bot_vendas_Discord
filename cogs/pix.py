@@ -137,7 +137,7 @@ class PixCog(commands.Cog):
                             (payment_id, thread.id, user.id, produtos_json))
                 conn.commit()
                 conn.close()
-                print(payment_id, thread.id, user.id, produtos_json)
+                # print(payment_id, thread.id, user.id, produtos_json)
                 await self.verificar_pagamento(payment_id, thread, arredonda, produtos, user)
 
             except KeyError:

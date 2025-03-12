@@ -1,7 +1,8 @@
+import discord
 from discord.ext import commands
 from quart import Quart, request, jsonify
 import json
-import asyncio
+import sqlite3
 
 class TesteWebhook(commands.Cog):
     def __init__(self, bot):
@@ -15,23 +16,34 @@ class TesteWebhook(commands.Cog):
         @self.app.route('/webhook/mercadopago', methods=['POST'])
         async def webhook():
             try:
-                # Obtém os dados recebidos no webhook (normalmente em formato JSON)
                 data = await request.get_json()
 
                 if data and "data" in data and "id" in data["data"]:
-                    pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago
-
-                    # Aqui você pode consultar o status do pagamento na API do Mercado Pago
-                    # Exemplo fictício (substitua pelo SDK do Mercado Pago)
-                    payment_response = {"status": "approved"}  # Simulação de resposta
+                    pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago                  
+                    payment_response = self.sdk.payment().get(pagamento_id)
                     print(f"Pagamento recebido! ID: {pagamento_id}")
                     print(f"Status pagamento: {payment_response['status']}")
 
-                # Aqui você pode fazer o que quiser com os dados, como salvar no banco de dados, processar etc.
-                print("Mensagem recebida do Mercado Pago:")
-                print(json.dumps(data, indent=4))  # Exibe os dados em formato legível
+                    conn = sqlite3.connect('produtos.db')
+                    cursor = conn.cursor()
+                    cursor.execute(f"SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = {pagamento_id}")
+                    abertos = cursor.fetchone()
+                    conn.close()
 
-                # Responder ao Mercado Pago que o webhook foi recebido com sucesso
+            
+
+                    if abertos:
+                        canal_id, usuario_id, produtos = abertos
+                        produtos_tabela = json.loads(produtos)
+                        print(canal_id, usuario_id, produtos_tabela)
+                    else:
+                        print(f"{pagamento_id} nao se encontra no banco")
+                    
+                    
+
+                # print("Mensagem recebida do Mercado Pago:")
+                # print(json.dumps(data, indent=4))
+
                 return jsonify({'status': 'received'}), 200
 
             except Exception as e:
