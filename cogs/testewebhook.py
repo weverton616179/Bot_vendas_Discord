@@ -44,6 +44,11 @@ class TesteWebhook(commands.Cog):
 
                             if canal:
                                 print("canal existe, realizar entrega")
+                                refund = self.sdk.refund().create(pagamento_id)
+                                if refund['status'] == 200:
+                                    print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
+                                else:
+                                    print("Erro ao realizar o estorno:", refund)
                             else:
                                 print("canal nao existe, extornar")
                                 conn = sqlite3.connect('produtos.db')
@@ -52,7 +57,7 @@ class TesteWebhook(commands.Cog):
                                 conn.commit()
                                 conn.close()
 
-                                refund = self.sdk.payment_refund(pagamento_id)
+                                refund = self.sdk.refund().create(pagamento_id)
                                 if refund['status'] == 200:
                                     print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
                                 else:
