@@ -15,6 +15,18 @@ class PixCog(commands.Cog):
         self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")  # Substitua pelo seu Access Token
         #self.start_flask_server()
 
+    async def cancela_pg(self, payment_id):
+        await asyncio.sleep(20)
+        print(f"passou de 10 min, cancelar {payment_id}")
+        resultado = self.sdk.payment().update(payment_id, {"status": "cancelled"})
+        
+        # Verifica se o cancelamento foi bem-sucedido
+        if resultado["status"] == 200:
+            print(f"Pagamento {payment_id} cancelado com sucesso!")
+        else:
+            print(f"Erro ao cancelar o pagamento: {resultado['response']['message']}")
+
+
     async def devolveChaves(self, produtos):
         print("devolvechaves")
         for chave in produtos:
@@ -114,22 +126,35 @@ class PixCog(commands.Cog):
 
                 # Enviar o QR Code e o código de copia e cola para o canal
                 await thread.send(
-                    f"⚠️⚠️Nós não fazemos **reembolso ou estorno** de pagamentos!!!⚠️⚠️\n\n🚨Lembre-se de deixar sua **DM ativa** para o bot poder enviar os produtos diretamente no seu privado!🚨\n\n⏱️ Você tem **10 minutos** para fazer o pagamento ou o pedido será cancelado!!!\n\n🔹 **PIX para pagamento de R${valorTotal:.2f}:**",
+                    f"⚠️⚠️Nós não fazemos **reembolso ou estorno** de pagamentos!!!⚠️⚠️\n\n🚨Lembre-se de deixar sua **DM ativa** para o bot poder enviar os produtos diretamente no seu privado!🚨\n\n",
                 )
 
                 embed = discord.Embed(
-                    title=f"📌 **Copia e Cola:**",
-                    description=f"`{qrcode_data}`",
+                    title=f"❖ **PIX para pagamento de R${valorTotal:.2f}**",
+                    description="⏱️ Você tem **10 minutos** para fazer o pagamento!",
                     color=discord.Color.green()
                 )
                 embed.set_image(url="attachment://pix_qrcode.png")
-                await thread.send(embed=embed, file=qr_image)
+                embed.add_field(
+                    name="📌 **Copia e Cola:**",
+                    value=f"```{qrcode_data}```",
+                    inline=False  # Define que o field não será inline
+                )
+
+                async def resposta_botao(interact:discord.Interaction):
+                    await interact.response.send_message(f"{qrcode_data}", ephemeral=True)
+                view = discord.ui.View(timeout=None)
+                botao = discord.ui.Button(label='❖ Copia e cola', style=discord.ButtonStyle.grey)
+                botao.callback = resposta_botao
+                view.add_item(botao)
+
+                await thread.send(embed=embed, file=qr_image, view=view)
                 
 
                 payment_id = payment_info["id"]
                 print('payment id ', payment_id)
                 
-                produtos_json = json.dumps(produtos)  # Converter lista para JSON
+                produtos_json = json.dumps(produtos)
                 conn = sqlite3.connect('produtos.db')
                 cursor = conn.cursor()
                 cursor.execute('''INSERT INTO pagamentosAbertos (payment_id, canal_id, usuario_id, produtos)
@@ -143,8 +168,8 @@ class PixCog(commands.Cog):
                 cursor.execute("DELETE FROM carrinho WHERE usuario = ?", (str(user.id),))
                 conn.commit()
                 conn.close()
-                # print(payment_id, thread.id, user.id, produtos_json)
-                # await self.verificar_pagamento(payment_id, thread, arredonda, produtos, user)
+
+                await self.cancela_pg(payment_id)
 
             except KeyError:
                 await thread.send("❌ Ocorreu um erro ao gerar o QR Code para o pagamento PIX.")

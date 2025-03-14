@@ -148,6 +148,7 @@ class TesteWebhook(commands.Cog):
                             canal = self.bot.get_channel(canal_id)
                             if canal:
                                 await canal.send(f"❌ O pagamento foi cancelado ou recusado.")
+                                await canal.delete()
                     elif status == "pending":
                         print("pendente")                    
 
