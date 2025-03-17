@@ -295,7 +295,7 @@ class PixCog(commands.Cog):
         async def webhook():
             try:
                 data = await request.get_json()
-                print("data:\n", data)
+                print("data:", data["data"])
 
                 if data and "data" in data and "id" in data["data"]:
                     pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago                  
@@ -309,7 +309,7 @@ class PixCog(commands.Cog):
                     if external_reference:
                         print("Tem external_reference: ", external_reference)
                     else:
-                        print("Não tem external_reference")
+                        print("Não tem external_reference", external_reference)
 
                     conn = sqlite3.connect('produtos.db')
                     cursor = conn.cursor()
