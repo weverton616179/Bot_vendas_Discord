@@ -295,7 +295,6 @@ class PixCog(commands.Cog):
         async def webhook():
             try:
                 data = await request.get_json()
-                print("data:", data["data"])
 
                 if data and "data" in data and "id" in data["data"]:
                     pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago                  
@@ -305,7 +304,7 @@ class PixCog(commands.Cog):
                     print(f"Pagamento recebido! ID: {pagamento_id}")
                     print(f"status: {status}")
 
-                    external_reference = data["data"].get("external_reference")
+                    external_reference = payment_response["response"]["external_reference"]
                     if external_reference:
                         print("Tem external_reference: ", external_reference)
                     else:
