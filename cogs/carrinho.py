@@ -69,24 +69,19 @@ class Carrinho(commands.Cog):
                 cog1 = self.bot.get_cog("PixCog")
                 await cog1.pix(user, thread)
 
-            async def reposta_cartao_credito(interact:discord.Interaction):
-                cog1 = self.bot.get_cog("cogCartao")
-                await cog1.cartao_credito(user, thread, interact)
+            async def reposta_cartao(interact:discord.Interaction):
+                cog1 = self.bot.get_cog("Cartao")
+                await cog1.cartao(user, thread)
 
-            async def reposta_cartao_debito(interact:discord.Interaction):
-                cog1 = self.bot.get_cog("cogCartao")
-                await cog1.cartao_debito(user, thread, interact)
 
             view = discord.ui.View(timeout=None)
             botao_pix = discord.ui.Button(label='❖ Pix', style=discord.ButtonStyle.green)
-            botao_cartao_credito = discord.ui.Button(label='💳 Cartão de Crédito', style=discord.ButtonStyle.blurple, disabled=True)
-            botao_cartao_debito = discord.ui.Button(label='💳 Cartão de Débito', style=discord.ButtonStyle.blurple, disabled=True)
+            botao_cartao = discord.ui.Button(label='💳 Cartão', style=discord.ButtonStyle.blurple)
+
             botao_pix.callback = reposta_pix
-            botao_cartao_credito.callback = reposta_cartao_credito
-            botao_cartao_debito.callback = reposta_cartao_debito
+            botao_cartao.callback = reposta_cartao
             view.add_item(botao_pix)
-            view.add_item(botao_cartao_credito)
-            view.add_item(botao_cartao_debito)
+            view.add_item(botao_cartao)
             
             await thread.purge(limit=100)
             await interact.response.send_message('⚠️⚠️Nós não fazemos **reembolso ou estorno** de pagamentos!!!⚠️⚠️\n\n🚨Lembre-se de deixar sua DM ativa para receber os produtos diretamente no seu privado!🚨\n\nSelecione uma forma de pagamento', view=view)

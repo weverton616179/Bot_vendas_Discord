@@ -13,7 +13,7 @@ from quart import Quart, request, jsonify
 class PixCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")  # Substitua pelo seu Access Token
+        self.sdk = mercadopago.SDK("TEST-858971298465680-021921-a974dd4d3bbfe15908060e8e9dd7e1f0-259696807")  # Substitua pelo seu Access Token
         self.app = Quart(__name__)
         self.setup_routes()
         self.bot.loop.create_task(self.run_quart())
@@ -21,13 +21,19 @@ class PixCog(commands.Cog):
     async def cancela_pg(self, payment_id):
         await asyncio.sleep(600)
         print(f"passou de 10 min, cancelar {payment_id}")
-        resultado = self.sdk.payment().update(payment_id, {"status": "cancelled"})
-        
-        # Verifica se o cancelamento foi bem-sucedido
-        if resultado["status"] == 200:
-            print(f"Pagamento {payment_id} cancelado com sucesso!")
+
+        payment_response = self.sdk.payment().get(payment_id)
+        payment_info = payment_response["response"]
+        status = payment_info["status"]
+        if status == "approved" or status == "refounded":
+            print("pagamento ja aprovado")
         else:
-            print(f"Erro ao cancelar o pagamento: {resultado['response']['message']}")
+            resultado = self.sdk.payment().update(payment_id, {"status": "cancelled"})
+            
+            if resultado["status"] == 200:
+                print(f"Pagamento {payment_id} cancelado com sucesso!")
+            else:
+                print(f"Erro ao cancelar o pagamento: {resultado['response']['message']}")
 
 
     async def devolveChaves(self, produtos):
@@ -162,7 +168,7 @@ class PixCog(commands.Cog):
                 cursor = conn.cursor()
                 cursor.execute('''INSERT INTO pagamentosAbertos (payment_id, canal_id, usuario_id, produtos)
                                 VALUES (?, ?, ?, ?)''', 
-                            (payment_id, thread.id, user.id, produtos_json))
+                            (str(payment_id), thread.id, user.id, produtos_json))
                 conn.commit()
                 conn.close()
 
@@ -298,9 +304,15 @@ class PixCog(commands.Cog):
                     print(f"Pagamento recebido! ID: {pagamento_id}")
                     print(f"status: {status}")
 
+                    external_reference = data["data"].get("external_reference")
+                    if external_reference:
+                        print("Tem external_reference: ", external_reference)
+                    else:
+                        print("Não tem external_reference")
+
                     conn = sqlite3.connect('produtos.db')
                     cursor = conn.cursor()
-                    cursor.execute(f"SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = {pagamento_id}")
+                    cursor.execute(f"SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = {str(pagamento_id)}")
                     abertos = cursor.fetchone()
                     conn.close()              
 
@@ -369,7 +381,7 @@ class PixCog(commands.Cog):
                                 print("canal nao existe, extornar")
                                 conn = sqlite3.connect('produtos.db')
                                 cursor = conn.cursor()
-                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (pagamento_id,))
+                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(pagamento_id),))
                                 conn.commit()
                                 conn.close()
 
@@ -395,7 +407,7 @@ class PixCog(commands.Cog):
                             print("cancelado mas ta no banco")
                             conn = sqlite3.connect('produtos.db')
                             cursor = conn.cursor()
-                            cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (pagamento_id,))
+                            cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(pagamento_id),))
                             conn.commit()
                             conn.close()
 

@@ -63,7 +63,7 @@ def criar_tabelas():
     ''')
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS pagamentosAbertos (
-        payment_id INTEGER PRIMARY KEY,
+        payment_id TEXT NOT NULL,
         canal_id INTEGER NOT NULL,
         usuario_id INTEGER NOT NULL,
         produtos TEXT NOT NULL
