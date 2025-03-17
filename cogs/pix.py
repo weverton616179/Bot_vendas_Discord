@@ -295,6 +295,7 @@ class PixCog(commands.Cog):
         async def webhook():
             try:
                 data = await request.get_json()
+                print("data:\n", data)
 
                 if data and "data" in data and "id" in data["data"]:
                     pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago                  
