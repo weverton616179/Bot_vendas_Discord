@@ -308,11 +308,11 @@ class PixCog(commands.Cog):
                     if external_reference:
                         print("Tem external_reference: ", external_reference)
                     else:
-                        print("Não tem external_reference", external_reference)
+                        external_reference = pagamento_id
 
                     conn = sqlite3.connect('produtos.db')
                     cursor = conn.cursor()
-                    cursor.execute(f"SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = {str(pagamento_id)}")
+                    cursor.execute(f"SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = {str(external_reference)}")
                     abertos = cursor.fetchone()
                     conn.close()              
 
@@ -381,7 +381,7 @@ class PixCog(commands.Cog):
                                 print("canal nao existe, extornar")
                                 conn = sqlite3.connect('produtos.db')
                                 cursor = conn.cursor()
-                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(pagamento_id),))
+                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(external_reference),))
                                 conn.commit()
                                 conn.close()
 
@@ -407,7 +407,7 @@ class PixCog(commands.Cog):
                             print("cancelado mas ta no banco")
                             conn = sqlite3.connect('produtos.db')
                             cursor = conn.cursor()
-                            cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(pagamento_id),))
+                            cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(external_reference),))
                             conn.commit()
                             conn.close()
 
