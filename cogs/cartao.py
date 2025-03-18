@@ -22,18 +22,64 @@ class Cartao(commands.Cog):
             conn.close()
         cog1 = self.bot.get_cog("ProdutosCog")
         await cog1.atualiza_estoque()
-    #---------------------------------------------VERIFICAR SE O LINK DE PAGAMENTO JÁ FOI USADE E APAGAR CHAT (usar o external_ref par pegar o payment id e verificar se ta aprovado)
-    #----------------------------------------------------------------------------------------------------caso nao, apagar o chat e definir status como cancelado
-    async def cancela_pg(self, payment_id):
-        await asyncio.sleep(600)
-        print(f"passou de 10 min, cancelar {payment_id}")
-        resultado = self.sdk.payment().update(payment_id, {"status": "cancelled"})
-        
-        # Verifica se o cancelamento foi bem-sucedido
-        if resultado["status"] == 200:
-            print(f"Pagamento {payment_id} cancelado com sucesso!")
-        else:
-            print(f"Erro ao cancelar o pagamento: {resultado['response']['message']}")
+
+    async def devolveTira(self, externalRef):
+        conn = sqlite3.connect('produtos.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = ?", (str(externalRef),))
+        abertos = cursor.fetchone()
+        conn.close()
+
+        canal_id, usuario_id, produtos = abertos
+        produtos_tabela = json.loads(produtos)
+
+        conn = sqlite3.connect('produtos.db')
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(externalRef),))
+        conn.commit()
+        conn.close()
+
+        await self.devolveChaves(produtos_tabela)
+
+
+    async def cancela_pg(self, externalRef, canal):
+        await asyncio.sleep(20)
+        print(f"passou de 10 min, cancelar {externalRef}")
+
+        try:
+            filters = {
+                "external_reference": externalRef
+            }
+            payment_id = None
+            search_result = self.sdk.payment().search(filters=filters)
+
+            if search_result["response"]["results"]:
+                payment_data = search_result["response"]["results"][0]
+                pagamento_id = payment_data["id"]
+                payment_response = self.sdk.payment().get(pagamento_id)                    
+                payment_info = payment_response["response"]
+                status = payment_info["status"]
+
+                if status == "approved" or status == "refounded":
+                    print("pagamento ja aprovado")
+                else:
+                    resultado = self.sdk.payment().update(payment_id, {"status": "cancelled"})
+                    if resultado["status"] == 200 or resultado["status"] == 201:
+                        print(f"Pagamento {payment_id} cancelado com sucesso!")
+                    else:
+                        print(f"Erro ao cancelar o pagamento: {resultado['response']['message']}")
+                        await self.devolveTira(externalRef)
+                        await canal.delete()
+                    
+            else:
+                print("Nenhum pagamento encontrado com o external_reference fornecido.")
+                await self.devolveTira(externalRef)
+                await canal.delete()
+
+        except Exception as e:
+            print(f"Erro ao buscar o pagamento: {e}")
+            await self.devolveTira(externalRef)
+            await canal.delete()
 
     async def cartao(self, user, thread):
         conn = sqlite3.connect('produtos.db')
@@ -95,7 +141,7 @@ class Cartao(commands.Cog):
                     "title": "Produto de Exemplo",
                     "quantity": 1,
                     "unit_price": arredonda,
-                    "currency_id": "BRL",  # Moeda (BRL para Real Brasileiro)
+                    "currency_id": "BRL", 
                 }
             ],
             "back_urls": {
@@ -103,18 +149,18 @@ class Cartao(commands.Cog):
                 "failure": "https://seusite.com/failure",
                 "pending": "https://seusite.com/pending"
             },
-            "auto_return": "approved",  # Redirecionamento automático após pagamento aprovado
+            "auto_return": "approved",  
             "external_reference": external_reference,
             "payment_methods": {
                 "excluded_payment_types": [
-                    {"id": "ticket"},  # Bloqueia boleto
-                    {"id": "bank_transfer"},  # Bloqueia transferência bancária (Pix)
-                    {"id": "atm"}  # Bloqueia pagamento em lotéricas
+                    {"id": "ticket"},  
+                    {"id": "bank_transfer"}, 
+                    {"id": "atm"} 
                 ],
                 "excluded_payment_methods": [
-                    # Aqui você pode bloquear métodos de pagamento específicos, se necessário
+                   
                 ],
-                "installments": 1  # Número máximo de parcelas (opcional)
+                "installments": 1
             }
         }
         
@@ -142,56 +188,8 @@ class Cartao(commands.Cog):
 
         await thread.send(f"link para pagamento no valor de R${arredonda}: {checkout_url}")
 
+        await self.cancela_pg(external_reference, thread)
+
 
 async def setup(bot):
     await bot.add_cog(Cartao(bot))
-
-
-
-
-
-
-
-
-
-# # Configuração do SDK
-# # APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807
-# # TEST-858971298465680-021921-a974dd4d3bbfe15908060e8e9dd7e1f0-259696807
-# sdk = mercadopago.SDK("TEST-858971298465680-021921-a974dd4d3bbfe15908060e8e9dd7e1f0-259696807")
-
-# # Criação da preferência de pagamento
-# preference_data = {
-#     "items": [
-#         {
-#             "title": "Produto de Exemplo",
-#             "quantity": 1,
-#             "unit_price": 100.0,
-#             "currency_id": "BRL",  # Moeda (BRL para Real Brasileiro)
-#         }
-#     ],
-#     "back_urls": {
-#         "success": "https://seusite.com/success",
-#         "failure": "https://seusite.com/failure",
-#         "pending": "https://seusite.com/pending"
-#     },
-#     "auto_return": "approved",  # Redirecionamento automático após pagamento aprovado
-#     "external_reference": "23asdasdas",
-#     "payment_methods": {
-#         "excluded_payment_types": [
-#             {"id": "ticket"},  # Bloqueia boleto
-#             {"id": "bank_transfer"},  # Bloqueia transferência bancária (Pix)
-#             {"id": "atm"}  # Bloqueia pagamento em lotéricas
-#         ],
-#         "excluded_payment_methods": [
-#             # Aqui você pode bloquear métodos de pagamento específicos, se necessário
-#         ],
-#         "installments": 1  # Número máximo de parcelas (opcional)
-#     }
-# }
-
-# preference_response = sdk.preference().create(preference_data)
-# preference = preference_response["response"]
-
-# # URL para redirecionar o usuário ao Checkout Pro
-# checkout_url = preference["init_point"]
-# print("URL do Checkout Pro:", checkout_url)
