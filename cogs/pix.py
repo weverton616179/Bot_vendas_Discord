@@ -310,9 +310,10 @@ class PixCog(commands.Cog):
                     else:
                         external_reference = pagamento_id
 
+                    bucetilde = "106524702343300715520250316010556"
                     conn = sqlite3.connect('produtos.db')
                     cursor = conn.cursor()
-                    cursor.execute(f"SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = {str(external_reference)}")
+                    cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = ?", (str(bucetilde),))
                     abertos = cursor.fetchone()
                     conn.close()              
 
