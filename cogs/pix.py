@@ -367,16 +367,22 @@ class PixCog(commands.Cog):
                                         for produto_id, cheves in produtes:
                                             await user.send(f"🔑 chave do produto {produto_id}: {cheves}")
                                     except:
-                                        await canal.send("🚨 SEU PRIVADO ESTÁ BLOQUEADO, os produtos não forma enviados diretamnete no seu privado")
+                                        await canal.send("🚨 SEU PRIVADO ESTÁ BLOQUEADO, os produtos não foram enviados diretamente ao seu privado")
                                         break 
                                 await canal.edit(name=f"PAGO-{data_atual}_{str(user.id)}")
                                 await canal.edit(archived=True)
 
-                                refund = self.sdk.refund().create(pagamento_id)
-                                if refund['status'] == 200 or refund['status'] == 201:
-                                    print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
-                                else:
-                                    print("Erro ao realizar o estorno:", refund)
+                                conn = sqlite3.connect('produtos.db')
+                                cursor = conn.cursor()
+                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(external_reference),))
+                                conn.commit()
+                                conn.close()
+
+                                # refund = self.sdk.refund().create(pagamento_id)
+                                # if refund['status'] == 200 or refund['status'] == 201:
+                                #     print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
+                                # else:
+                                #     print("Erro ao realizar o estorno:", refund)
                             else:
                                 print("canal nao existe, extornar")
                                 conn = sqlite3.connect('produtos.db')

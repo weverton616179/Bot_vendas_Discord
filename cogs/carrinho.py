@@ -76,7 +76,7 @@ class Carrinho(commands.Cog):
 
             view = discord.ui.View(timeout=None)
             botao_pix = discord.ui.Button(label='❖ Pix', style=discord.ButtonStyle.green)
-            botao_cartao = discord.ui.Button(label='💳 Cartão', style=discord.ButtonStyle.blurple)
+            botao_cartao = discord.ui.Button(label='💳 Cartão', style=discord.ButtonStyle.blurple, disabled=True)
 
             botao_pix.callback = reposta_pix
             botao_cartao.callback = reposta_cartao
