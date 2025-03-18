@@ -13,7 +13,7 @@ from quart import Quart, request, jsonify
 class PixCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.sdk = mercadopago.SDK("TEST-858971298465680-021921-a974dd4d3bbfe15908060e8e9dd7e1f0-259696807")  # Substitua pelo seu Access Token
+        self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")
         self.app = Quart(__name__)
         self.setup_routes()
         self.bot.loop.create_task(self.run_quart())
@@ -297,7 +297,7 @@ class PixCog(commands.Cog):
                 data = await request.get_json()
 
                 if data and "data" in data and "id" in data["data"]:
-                    pagamento_id = data["data"]["id"]  # ID do pagamento no Mercado Pago                  
+                    pagamento_id = data["data"]["id"]           
                     payment_response = self.sdk.payment().get(pagamento_id)                    
                     payment_info = payment_response["response"]
                     status = payment_info["status"]
@@ -373,7 +373,7 @@ class PixCog(commands.Cog):
                                 await canal.edit(archived=True)
 
                                 refund = self.sdk.refund().create(pagamento_id)
-                                if refund['status'] == 200:
+                                if refund['status'] == 200 or refund['status'] == 201:
                                     print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
                                 else:
                                     print("Erro ao realizar o estorno:", refund)
@@ -388,7 +388,7 @@ class PixCog(commands.Cog):
                                 await self.devolveChaves(produtos_tabela)
 
                                 refund = self.sdk.refund().create(pagamento_id)
-                                if refund['status'] == 200:
+                                if refund['status'] == 200 or refund['status'] == 201:
                                     print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
                                 else:
                                     print("Erro ao realizar o estorno:", refund)
@@ -396,7 +396,7 @@ class PixCog(commands.Cog):
                         else:
                             print("nao ta no banco")
                             refund = self.sdk.refund().create(pagamento_id)
-                            if refund['status'] == 200:
+                            if refund['status'] == 200 or refund['status'] == 201:
                                 print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
                             else:
                                 print("Erro ao realizar o estorno:", refund)
@@ -422,13 +422,9 @@ class PixCog(commands.Cog):
                     elif status == "pending":
                         print("pendente")                    
 
-                # print("Mensagem recebida do Mercado Pago:")
-                # print(json.dumps(data, indent=4))
-
                 return jsonify({'status': 'received'}), 200
 
             except Exception as e:
-                # Caso ocorra algum erro, retornamos um status de erro
                 print(f"Erro ao processar o webhook: {str(e)}")
                 return jsonify({'status': 'error', 'message': str(e)}), 500
 

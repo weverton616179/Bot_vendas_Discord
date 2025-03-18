@@ -10,7 +10,7 @@ import asyncio
 class Cartao(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.sdk = mercadopago.SDK("TEST-858971298465680-021921-a974dd4d3bbfe15908060e8e9dd7e1f0-259696807")
+        self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")
 
     async def devolveChaves(self, produtos):
         print("devolvechaves")
@@ -43,7 +43,7 @@ class Cartao(commands.Cog):
 
 
     async def cancela_pg(self, externalRef, canal):
-        await asyncio.sleep(20)
+        await asyncio.sleep(600)
         print(f"passou de 10 min, cancelar {externalRef}")
 
         try:
