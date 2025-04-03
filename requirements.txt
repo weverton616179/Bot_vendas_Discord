@@ -4,3 +4,5 @@ qrcode
 Pillow
 quart==0.18.4
 werkzeug==2.3.7
+cryptography
+pymysql

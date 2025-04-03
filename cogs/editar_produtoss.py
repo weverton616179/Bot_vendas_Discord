@@ -2,12 +2,29 @@ import discord
 from discord.ext import commands
 import sqlite3
 import json
+import pymysql
+from pymysql import Error
 
-conn = sqlite3.connect('produtos.db')
-cursor = conn.cursor()
+# conn = sqlite3.connect('produtos.db') pepes
+host='hopper.proxy.rlwy.net'
+port=44999
+database='railway'
+user='root'
+password='wqWlDNLwuqvyCFTZIFILwaIVFVxzfMtM'
+charset='utf8mb4'
+
+connection = pymysql.connect(
+    host=host,
+    port=port,
+    database=database,
+    user=user,
+    password=password,
+    charset=charset,
+)
+cursor = connection.cursor()
 cursor.execute("SELECT id FROM produtos")
 produtos = cursor.fetchall()
-conn.close()
+connection.close()
 
 views = {}
 
@@ -16,9 +33,20 @@ def criar_callback(id_produto):
 
         carrinho_cog = interaction.client.get_cog("Carrinho")
         if carrinho_cog:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db')
+            # cursor = conn.cursor()
+            # cursor.execute(f"SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = ? AND ativo = ? ", (id_produto, 0,)) pepes
+            conn = pymysql.connect(
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password,
+                charset=charset,
+            )
             cursor = conn.cursor()
-            cursor.execute(f"SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = ? AND ativo = ? ", (id_produto, 0,))
+            cursor.execute("SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = %s AND ativo = %s", (id_produto, 0))
+
             quantidade = cursor.fetchone()[0]
             conn.close()
             if quantidade > 0:
@@ -56,7 +84,9 @@ class ProdutosCog(commands.Cog):
 
     async def atualiza_estoque(self):
         print('atualiza estoque')
-        conn = sqlite3.connect('produtos.db')
+        # conn = sqlite3.connect('produtos.db') pepes
+        cog1 = self.bot.get_cog("Banco_novo")
+        conn = cog1.connect_to_railway_mysql()
         cursor = conn.cursor()
         cursor.execute("SELECT id, chat FROM produtos")
         produtos = cursor.fetchall()
@@ -69,9 +99,11 @@ class ProdutosCog(commands.Cog):
                     if message.embeds:
                         embed = message.embeds[0]
                         field = embed.fields[1]
-                        conn = sqlite3.connect('produtos.db')
+                        # conn = sqlite3.connect('produtos.db') pepes
+                        cog1 = self.bot.get_cog("Banco_novo")
+                        conn = cog1.connect_to_railway_mysql()
                         cursor = conn.cursor()
-                        cursor.execute(f"SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = ? AND ativo = ? ", (id, 0,))
+                        cursor.execute("SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = %s AND ativo = %s ", (id, 0,))
                         quantidade = cursor.fetchone()[0]
                         conn.close()
                         embed.set_field_at(index=1, name=field.name, value=f'`{quantidade}`', inline=field.inline)
@@ -84,7 +116,19 @@ class ProdutosCog(commands.Cog):
 
         if cargo_obeso:
 
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            # cursor = conn.cursor()
+            # cursor.execute("SELECT id FROM produtos")
+            # produtos = cursor.fetchall()
+            # conn.close()
+            # controle = 0
+            # for id_banco in produtos:
+            #     if id_banco[0] == id:
+            #         controle = 1
+            #         break
+
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM produtos")
             produtos = cursor.fetchall()
@@ -94,6 +138,7 @@ class ProdutosCog(commands.Cog):
                 if id_banco[0] == id:
                     controle = 1
                     break
+
                     
             if controle == 0:
                 class AdicionarProdutoModal(discord.ui.Modal):
@@ -105,10 +150,11 @@ class ProdutosCog(commands.Cog):
                     preco = discord.ui.TextInput(label='Preço (para valores quebrados utilizar ponto)')
 
                     async def on_submit(self, interaction: discord.Interaction):
-                        conn = sqlite3.connect('produtos.db')
+                        # conn = sqlite3.connect('produtos.db') pepes
+                        conn = cog1.connect_to_railway_mysql()
                         cursor = conn.cursor()
                         cursor.execute('''INSERT INTO produtos (id, titulo, descricao, preco)
-                                        VALUES (?, ?, ?, ?)''', 
+                                        VALUES (%s, %s, %s, %s)''', 
                                     (id, self.titulo.value, self.descricao.value, float(self.preco.value)))
                         conn.commit()
                         conn.close()
@@ -144,7 +190,9 @@ class ProdutosCog(commands.Cog):
         print('listar')
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("SELECT id, titulo, descricao, preco, autor, img_um, img_dois, rodape, cor, chat FROM produtos")
             produtos = cursor.fetchall()
@@ -167,16 +215,20 @@ class ProdutosCog(commands.Cog):
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
 
         if cargo_obeso:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
-            cursor.execute('''SELECT * FROM produtos WHERE id = ?''', (id_produto,))
+            cursor.execute('''SELECT * FROM produtos WHERE id = %s''', (id_produto,))
             produto = cursor.fetchone()
             conn.close()
 
             if produto:
-                conn = sqlite3.connect('produtos.db')
+                # conn = sqlite3.connect('produtos.db') pepes
+                cog1 = self.bot.get_cog("Banco_novo")
+                conn = cog1.connect_to_railway_mysql()
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM produtos WHERE id = ?", (id_produto,))
+                cursor.execute("DELETE FROM produtos WHERE id = %s", (id_produto,))
                 conn.commit()
                 conn.close()
 
@@ -190,9 +242,11 @@ class ProdutosCog(commands.Cog):
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
 
         if cargo_obeso:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
-            cursor.execute('''SELECT * FROM produtos WHERE id = ?''', (id_produto,))
+            cursor.execute('''SELECT * FROM produtos WHERE id = %s''', (id_produto,))
             produto = cursor.fetchone()
             conn.close()
 
@@ -208,9 +262,11 @@ class ProdutosCog(commands.Cog):
                         edicao = discord.ui.TextInput(label=f'Digite o novo valor de {escolha}')
 
                         async def on_submit(self, interaction: discord.Interaction):
-                            conn = sqlite3.connect('produtos.db')
+                            # conn = sqlite3.connect('produtos.db') pepes
+                            cog1 = self.bot.get_cog("Banco_novo")
+                            conn = cog1.connect_to_railway_mysql()
                             cursor = conn.cursor()
-                            cursor.execute(f'''UPDATE produtos SET {escolha} = ? WHERE id = ?''', 
+                            cursor.execute(f'''UPDATE produtos SET {escolha} = %s WHERE id = %s''', 
                                            (self.edicao.value, id_produto))
                             conn.commit()
                             conn.close()
@@ -247,9 +303,11 @@ class ProdutosCog(commands.Cog):
 
         if cargo_obeso:
 
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
-            cursor.execute('''SELECT * FROM produtos WHERE id = ?''', (id_produto,))
+            cursor.execute('''SELECT * FROM produtos WHERE id = %s''', (id_produto,))
             produto = cursor.fetchone()
             conn.close()
 
@@ -265,11 +323,13 @@ class ProdutosCog(commands.Cog):
                     cor = discord.ui.TextInput(label='Cor (hexadecimal)', placeholder='0xFF5733 (sempre utilizar o 0x)', required=False)
 
                     async def on_submit(self, interaction: discord.Interaction):
-                        conn = sqlite3.connect('produtos.db')
+                        # conn = sqlite3.connect('produtos.db') pepes
+                        cog1 = self.bot.get_cog("Banco_novo")
+                        conn = cog1.connect_to_railway_mysql()
                         cursor = conn.cursor()
-                        cursor.execute(f'''UPDATE produtos 
-                                        SET autor = ?, img_um = ?, img_dois = ?, rodape = ?, cor = ?
-                                        WHERE id = ?''', 
+                        cursor.execute('''UPDATE produtos 
+                                        SET autor = %s, img_um = %s, img_dois = %s, rodape = %s, cor = %s
+                                        WHERE id = %s''', 
                                        (self.autor.value, self.img_um.value, self.img_dois.value, self.rodape.value, self.cor.value, id_produto))
                         conn.commit()
                         conn.close()
@@ -285,7 +345,9 @@ class ProdutosCog(commands.Cog):
         print('Atualizar produtos')
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("SELECT id, titulo, descricao, preco, autor, img_um, img_dois, rodape, cor FROM produtos")
             produtos = cursor.fetchall()
@@ -305,9 +367,11 @@ class ProdutosCog(commands.Cog):
             
             for id, titulo, descricao, preco, autor, img_um, img_dois, rodape, cor in produtos:                
                 novo_canal = await categoria.create_text_channel(titulo)
-                conn = sqlite3.connect('produtos.db')
+                # conn = sqlite3.connect('produtos.db') pepes
+                cog1 = self.bot.get_cog("Banco_novo")
+                conn = cog1.connect_to_railway_mysql()
                 cursor = conn.cursor()
-                cursor.execute(f'''UPDATE produtos SET chat = ? WHERE id = ?''', 
+                cursor.execute('''UPDATE produtos SET chat = %s WHERE id = %s''', 
                                (novo_canal.id, id))
                 conn.commit()
                 conn.close()
@@ -338,9 +402,11 @@ class ProdutosCog(commands.Cog):
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
 
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = selfes.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
-            cursor.execute("SELECT id FROM produtos WHERE id = ?", (id_produto,))
+            cursor.execute("SELECT id FROM produtos WHERE id = %s", (id_produto,))
             produto = cursor.fetchone()
             conn.close()
             controle = 0
@@ -353,14 +419,16 @@ class ProdutosCog(commands.Cog):
 
                     async def on_submit(self, interaction: discord.Interaction):
                         linhas = self.chaves.value.splitlines()
+                        conn = cog1.connect_to_railway_mysql()
+                        cursor = conn.cursor()
                         for linha in linhas:
-                            conn = sqlite3.connect('produtos.db')
-                            cursor = conn.cursor()
+                            # conn = sqlite3.connect('produtos.db') pepes
                             cursor.execute('''INSERT INTO chaves_produtos (produto_id, chave)
-                                            VALUES (?, ?)''', 
+                                            VALUES (%s, %s)''', 
                                         (id_produto, linha))
-                            conn.commit()
-                            conn.close()
+                        
+                        conn.commit()
+                        conn.close()
                         await interaction.response.send_message("Chaves adicionadas com sucesso!", ephemeral=True)
                         await selfes.atualiza_estoque()
                 await interact.response.send_modal(AdicionarChavesModal())            
@@ -370,10 +438,11 @@ class ProdutosCog(commands.Cog):
     @discord.app_commands.command()
     async def listar_chaves(self, interact: discord.Interaction):
         print('listar chaves')
-        await self.atualiza_estoque()
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("SELECT id, produto_id, chave, ativo FROM chaves_produtos")
             chaves = cursor.fetchall()
@@ -389,13 +458,16 @@ class ProdutosCog(commands.Cog):
                 embed.add_field(name=produto_id, value=f"🔑 Chave: {chave}\n💬 ID Chave: {id}\n👤Já Ativada (0=não, 1=sim): {ativo}", inline=False)
 
             await interact.response.send_message(embed=embed, ephemeral=True)
+            await self.atualiza_estoque()
 
     @discord.app_commands.command()
     async def apagar_chaves(self, interact:discord.Interaction):
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
             print('apagar chaves')
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("DELETE FROM chaves_produtos;")
             conn.commit()
@@ -408,9 +480,11 @@ class ProdutosCog(commands.Cog):
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
             print('apagar chaves')
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM chaves_produtos WHERE ativo = ?", (1,))
+            cursor.execute("DELETE FROM chaves_produtos WHERE ativo = %s", (1,))
             conn.commit()
             conn.close()
             await interact.response.send_message("Chaves apagadas com sucesso", ephemeral=True)
@@ -421,7 +495,9 @@ class ProdutosCog(commands.Cog):
         print('listar vendas')
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("SELECT produto_id, chave, usuario, valor, data FROM vendas")
             produtos = cursor.fetchall()
@@ -444,7 +520,9 @@ class ProdutosCog(commands.Cog):
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
             print('apagar vendas')
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("DELETE FROM vendas;")
             conn.commit()
@@ -457,7 +535,9 @@ class ProdutosCog(commands.Cog):
         print('listar vendas')
         cargo_obeso = discord.utils.get(interact.user.roles, name="OBESO")
         if cargo_obeso:
-            conn = sqlite3.connect('produtos.db')
+            # conn = sqlite3.connect('produtos.db') pepes
+            cog1 = self.bot.get_cog("Banco_novo")
+            conn = cog1.connect_to_railway_mysql()
             cursor = conn.cursor()
             cursor.execute("SELECT payment_id, canal_id, usuario_id, produtos FROM pagamentosAbertos")
             abertos = cursor.fetchall()

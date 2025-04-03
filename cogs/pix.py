@@ -13,7 +13,7 @@ from quart import Quart, request, jsonify
 class PixCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")
+        self.sdk = mercadopago.SDK("TEST-858971298465680-021921-a974dd4d3bbfe15908060e8e9dd7e1f0-259696807")
         self.app = Quart(__name__)
         self.setup_routes()
         self.bot.loop.create_task(self.run_quart())
@@ -38,59 +38,64 @@ class PixCog(commands.Cog):
 
     async def devolveChaves(self, produtos):
         print("devolvechaves")
+        cogBanco = self.bot.get_cog("Banco_novo")
+        conn = cogBanco.connect_to_railway_mysql()
+        cursor = conn.cursor()
         for chave in produtos:
-            conn = sqlite3.connect('produtos.db')
-            cursor = conn.cursor()
-            cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (0, chave[0],))
-            conn.commit()
-            conn.close()
+            cursor.execute("UPDATE chaves_produtos SET ativo = %s WHERE id = %s", (0, chave[0],))
+        conn.commit()
+        conn.close()
         cog1 = self.bot.get_cog("ProdutosCog")
         await cog1.atualiza_estoque()
 
     async def pix(self, user, thread):
 
-        conn = sqlite3.connect('produtos.db')
+        cogBanco = self.bot.get_cog("Banco_novo")
+        conn = cogBanco.connect_to_railway_mysql()
         cursor = conn.cursor()
-        cursor.execute("SELECT produto_id, quantia FROM carrinho WHERE usuario = ?", (str(user.id),))
+        cursor.execute("SELECT produto_id, quantia FROM carrinho WHERE usuario = %s", (str(user.id),))
         carrinhos = cursor.fetchall()
-        conn.close()
+        # conn.close()
         
         valorTotal = 0
         produtos = []
 
         for produto_id, quantia in carrinhos:
             print(produto_id, quantia)
-            conn = sqlite3.connect('produtos.db')
-            cursor = conn.cursor()
-            cursor.execute(f"SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = ? AND ativo = ? ", (produto_id, 0,))
+            # conn = sqlite3.connect('produtos.db')
+            # cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = %s AND ativo = %s ", (produto_id, 0,))
             quantidade = cursor.fetchone()[0]
-            conn.close()
+            # conn.close()
             if quantia > quantidade:
                 await thread.send(f"quantidade de {produto_id} nao disponivel")
+                conn.close()
                 return
             else:
-                conn = sqlite3.connect('produtos.db')
-                cursor = conn.cursor()
-                cursor.execute("SELECT preco FROM produtos WHERE id = ?", (produto_id,))
+                # conn = sqlite3.connect('produtos.db')
+                # cursor = conn.cursor()
+                cursor.execute("SELECT preco FROM produtos WHERE id = %s", (produto_id,))
                 produto = cursor.fetchone()
-                conn.close()
+                # conn.close()
                 valorTotal = valorTotal + (float(produto[0]) * quantia)
 
-                conn = sqlite3.connect('produtos.db')
-                cursor = conn.cursor()
-                cursor.execute(f"SELECT id FROM chaves_produtos WHERE produto_id = ? AND ativo = ? ", (produto_id, 0,))
+                # conn = sqlite3.connect('produtos.db')
+                # cursor = conn.cursor()
+                cursor.execute("SELECT id FROM chaves_produtos WHERE produto_id = %s AND ativo = %s ", (produto_id, 0,))
                 chaves = cursor.fetchmany(int(quantia))
-                conn.close()
+                # conn.close()
                 for chave in chaves:
                     print(chave[0])
-                    conn = sqlite3.connect('produtos.db')
-                    cursor = conn.cursor()
-                    cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (1, chave[0],))
-                    conn.commit()
-                    conn.close()
+                    # conn = sqlite3.connect('produtos.db')
+                    # cursor = conn.cursor()
+                    cursor.execute("UPDATE chaves_produtos SET ativo = %s WHERE id = %s", (1, chave[0],))
+                    
+                    # conn.close()
                     produtos.append(chave)
                     cog1 = self.bot.get_cog("ProdutosCog")
                     await cog1.atualiza_estoque()
+                conn.commit()
+                conn.close()
             print(produtos)
 
 
@@ -164,17 +169,19 @@ class PixCog(commands.Cog):
                 print('payment id ', payment_id)
                 
                 produtos_json = json.dumps(produtos)
-                conn = sqlite3.connect('produtos.db')
+                # conn = sqlite3.connect('produtos.db')
+                cogBanco = self.bot.get_cog("Banco_novo")
+                conn = cogBanco.connect_to_railway_mysql()
                 cursor = conn.cursor()
                 cursor.execute('''INSERT INTO pagamentosAbertos (payment_id, canal_id, usuario_id, produtos)
-                                VALUES (?, ?, ?, ?)''', 
+                                VALUES (%s, %s, %s, %s)''', 
                             (str(payment_id), thread.id, user.id, produtos_json))
-                conn.commit()
-                conn.close()
+                # conn.commit()
+                # conn.close()
 
-                conn = sqlite3.connect('produtos.db')
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM carrinho WHERE usuario = ?", (str(user.id),))
+                # conn = sqlite3.connect('produtos.db')
+                # cursor = conn.cursor()
+                cursor.execute("DELETE FROM carrinho WHERE usuario = %s", (str(user.id),))
                 conn.commit()
                 conn.close()
 
@@ -310,11 +317,13 @@ class PixCog(commands.Cog):
                     else:
                         external_reference = pagamento_id
 
-                    conn = sqlite3.connect('produtos.db')
+                    # conn = sqlite3.connect('produtos.db')
+                    cogBanco = self.bot.get_cog("Banco_novo")
+                    conn = cogBanco.connect_to_railway_mysql()
                     cursor = conn.cursor()
-                    cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = ?", (str(external_reference),))
+                    cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = %s", (str(external_reference),))
                     abertos = cursor.fetchone()
-                    conn.close()              
+                    # conn.close()              
 
                     if status == "approved":
                         print("aprovado")
@@ -332,36 +341,36 @@ class PixCog(commands.Cog):
                                 data_atual = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                 for id in produtos_tabela:
                                     print(id[0], 'perarararara', produtos_tabela)
-                                    conn = sqlite3.connect('produtos.db')
-                                    cursor = conn.cursor()
+                                    # conn = sqlite3.connect('produtos.db')
+                                    # cursor = conn.cursor()
                                     cursor.execute(f"SELECT produto_id, chave FROM chaves_produtos WHERE id = {float(id[0])}")
                                     produtes = cursor.fetchall()
-                                    conn.close()
+                                    # conn.close()
 
                                     for produto_id, cheves in produtes:
-                                            conn = sqlite3.connect('produtos.db')
-                                            cursor = conn.cursor()
-                                            cursor.execute("SELECT preco FROM produtos WHERE id = ?", (produto_id,))
+                                            # conn = sqlite3.connect('produtos.db')
+                                            # cursor = conn.cursor()
+                                            cursor.execute("SELECT preco FROM produtos WHERE id = %s", (produto_id,))
                                             produto = cursor.fetchone()
-                                            conn.close()
+                                            # conn.close()
                                             
 
                                             await canal.send(f"🔑 chave do produto {produto_id}: {cheves}")
-                                            conn = sqlite3.connect('produtos.db')
-                                            cursor = conn.cursor()
+                                            # conn = sqlite3.connect('produtos.db')
+                                            # cursor = conn.cursor()
                                             cursor.execute('''INSERT INTO vendas (produto_id, chave, usuario, valor, data)
-                                                            VALUES (?, ?, ?, ?, ?)''', 
+                                                            VALUES (%s, %s, %s, %s, %s)''', 
                                                         (produto_id, cheves, str(user.id), produto[0], data_atual))
-                                            conn.commit()
-                                            conn.close()
+                                            # conn.commit()
+                                            # conn.close()
 
                                 for id in produtos_tabela:
                                     print(id[0], 'perarararara', produtos_tabela)
-                                    conn = sqlite3.connect('produtos.db')
-                                    cursor = conn.cursor()
+                                    # conn = sqlite3.connect('produtos.db')
+                                    # cursor = conn.cursor()
                                     cursor.execute(f"SELECT produto_id, chave FROM chaves_produtos WHERE id = {float(id[0])}")
                                     produtes = cursor.fetchall()
-                                    conn.close()
+                                    # conn.close()
 
                                     try:
                                         for produto_id, cheves in produtes:
@@ -372,24 +381,19 @@ class PixCog(commands.Cog):
                                 await canal.edit(name=f"PAGO-{data_atual}_{str(user.id)}")
                                 await canal.edit(archived=True)
 
-                                conn = sqlite3.connect('produtos.db')
-                                cursor = conn.cursor()
-                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(external_reference),))
-                                conn.commit()
-                                conn.close()
+                                # conn = sqlite3.connect('produtos.db')
+                                # cursor = conn.cursor()
+                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = %s", (str(external_reference),))
+                                # conn.commit()
+                                # conn.close()
 
-                                # refund = self.sdk.refund().create(pagamento_id)
-                                # if refund['status'] == 200 or refund['status'] == 201:
-                                #     print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
-                                # else:
-                                #     print("Erro ao realizar o estorno:", refund)
                             else:
                                 print("canal nao existe, extornar")
-                                conn = sqlite3.connect('produtos.db')
-                                cursor = conn.cursor()
-                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(external_reference),))
-                                conn.commit()
-                                conn.close()
+                                # conn = sqlite3.connect('produtos.db')
+                                # cursor = conn.cursor()
+                                cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = %s", (str(external_reference),))
+                                # conn.commit()
+                                # conn.close()
 
                                 await self.devolveChaves(produtos_tabela)
 
@@ -406,14 +410,15 @@ class PixCog(commands.Cog):
                                 print(f"Estorno realizado com sucesso para o pagamento {pagamento_id}")
                             else:
                                 print("Erro ao realizar o estorno:", refund)
-
+                        conn.commit()
+                        conn.close()
                     elif status == "cancelled" or status == "expired" or status == "rejected":
                         print("cancelado")
                         if abertos:
                             print("cancelado mas ta no banco")
-                            conn = sqlite3.connect('produtos.db')
-                            cursor = conn.cursor()
-                            cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(external_reference),))
+                            # conn = sqlite3.connect('produtos.db')
+                            # cursor = conn.cursor()
+                            cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = %s", (str(external_reference),))
                             conn.commit()
                             conn.close()
 
@@ -426,7 +431,8 @@ class PixCog(commands.Cog):
                                 await canal.send(f"❌ O pagamento foi cancelado ou recusado.")
                                 await canal.delete()
                     elif status == "pending":
-                        print("pendente")                    
+                        print("pendente")
+                        conn.close()                    
 
                 return jsonify({'status': 'received'}), 200
 
