@@ -307,7 +307,7 @@ class PixCog(commands.Cog):
                     pagamento_id = data["data"]["id"]           
                     payment_response = self.sdk.payment().get(pagamento_id)                    
                     payment_info = payment_response["response"]
-                    status = 1322877130 
+                    status = "approved" 
                     #status = payment_info["status"]
                     print(f"Pagamento recebido! ID: {pagamento_id}")
                     print(f"status: {status}")
