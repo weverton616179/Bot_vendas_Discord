@@ -93,10 +93,10 @@ class PixCog(commands.Cog):
                     # conn.close()
                     produtos.append(chave)
                     cog1 = self.bot.get_cog("ProdutosCog")
-                    await cog1.atualiza_estoque()
                 conn.commit()
                 conn.close()
             print(produtos)
+            await cog1.atualiza_estoque()
 
 
         await thread.purge(limit=100)
