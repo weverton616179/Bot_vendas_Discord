@@ -14,28 +14,33 @@ class Cartao(commands.Cog):
 
     async def devolveChaves(self, produtos):
         print("devolvechaves")
+        cogBanco = self.bot.get_cog("Banco_novo")
+        conn = cogBanco.connect_to_railway_mysql()
+        cursor = conn.cursor()
         for chave in produtos:
-            conn = sqlite3.connect('produtos.db')
-            cursor = conn.cursor()
-            cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (0, chave[0],))
-            conn.commit()
-            conn.close()
+            # conn = sqlite3.connect('produtos.db')
+            # cursor = conn.cursor()
+            cursor.execute("UPDATE chaves_produtos SET ativo = %s WHERE id = %s", (0, chave[0],))
+        conn.commit()
+        conn.close()
         cog1 = self.bot.get_cog("ProdutosCog")
         await cog1.atualiza_estoque()
 
     async def devolveTira(self, externalRef):
-        conn = sqlite3.connect('produtos.db')
+        # conn = sqlite3.connect('produtos.db')
+        cogBanco = self.bot.get_cog("Banco_novo")
+        conn = cogBanco.connect_to_railway_mysql()
         cursor = conn.cursor()
-        cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = ?", (str(externalRef),))
+        cursor.execute("SELECT canal_id, usuario_id, produtos FROM pagamentosAbertos WHERE payment_id = %s", (str(externalRef),))
         abertos = cursor.fetchone()
-        conn.close()
+        # conn.close()
 
         canal_id, usuario_id, produtos = abertos
         produtos_tabela = json.loads(produtos)
 
-        conn = sqlite3.connect('produtos.db')
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = ?", (str(externalRef),))
+        # conn = sqlite3.connect('produtos.db')
+        # cursor = conn.cursor()
+        cursor.execute("DELETE FROM pagamentosAbertos WHERE payment_id = %s", (str(externalRef),))
         conn.commit()
         conn.close()
 
@@ -82,11 +87,13 @@ class Cartao(commands.Cog):
             await canal.delete()
 
     async def cartao(self, user, thread):
-        conn = sqlite3.connect('produtos.db')
+        # conn = sqlite3.connect('produtos.db')
+        cogBanco = self.bot.get_cog("Banco_novo")
+        conn = cogBanco.connect_to_railway_mysql()
         cursor = conn.cursor()
-        cursor.execute("SELECT produto_id, quantia FROM carrinho WHERE usuario = ?", (str(user.id),))
+        cursor.execute("SELECT produto_id, quantia FROM carrinho WHERE usuario = %s", (str(user.id),))
         carrinhos = cursor.fetchall()
-        conn.close()
+        # conn.close()
 
         external_reference = str(user.id)+str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         print
@@ -95,38 +102,40 @@ class Cartao(commands.Cog):
 
         for produto_id, quantia in carrinhos:
             print(produto_id, quantia)
-            conn = sqlite3.connect('produtos.db')
-            cursor = conn.cursor()
-            cursor.execute(f"SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = ? AND ativo = ? ", (produto_id, 0,))
+            # conn = sqlite3.connect('produtos.db')
+            # cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = %s AND ativo = %s ", (produto_id, 0,))
             quantidade = cursor.fetchone()[0]
-            conn.close()
+            # conn.close()
             if quantia > quantidade:
                 await thread.send(f"quantidade de {produto_id} nao disponivel")
                 return
             else:
-                conn = sqlite3.connect('produtos.db')
-                cursor = conn.cursor()
-                cursor.execute("SELECT preco FROM produtos WHERE id = ?", (produto_id,))
+                # conn = sqlite3.connect('produtos.db')
+                # cursor = conn.cursor()
+                cursor.execute("SELECT preco FROM produtos WHERE id = %s", (produto_id,))
                 produto = cursor.fetchone()
-                conn.close()
+                # conn.close()
                 valorTotal = valorTotal + (float(produto[0]) * quantia)
 
-                conn = sqlite3.connect('produtos.db')
-                cursor = conn.cursor()
-                cursor.execute(f"SELECT id FROM chaves_produtos WHERE produto_id = ? AND ativo = ? ", (produto_id, 0,))
+                # conn = sqlite3.connect('produtos.db')
+                # cursor = conn.cursor()
+                cursor.execute("SELECT id FROM chaves_produtos WHERE produto_id = %s AND ativo = %s ", (produto_id, 0,))
                 chaves = cursor.fetchmany(int(quantia))
-                conn.close()
+                # conn.close()
                 for chave in chaves:
                     print(chave[0])
-                    conn = sqlite3.connect('produtos.db')
-                    cursor = conn.cursor()
-                    cursor.execute(f"UPDATE chaves_produtos SET ativo = ? WHERE id = ?", (1, chave[0],))
-                    conn.commit()
-                    conn.close()
+                    # conn = sqlite3.connect('produtos.db')
+                    # cursor = conn.cursor()
+                    cursor.execute("UPDATE chaves_produtos SET ativo = %s WHERE id = %s", (1, chave[0],))
+                    # conn.commit()
+                    # conn.close()
                     produtos.append(chave)
                     cog1 = self.bot.get_cog("ProdutosCog")
-                    await cog1.atualiza_estoque()
-            print(produtos)
+                    
+        conn.commit()
+        conn.close()
+        print(produtos)
 
         await thread.purge(limit=100)
         arredonda = round(valorTotal, 2)
@@ -172,22 +181,24 @@ class Cartao(commands.Cog):
         print('external_reference ', external_reference)
                 
         produtos_json = json.dumps(produtos)
-        conn = sqlite3.connect('produtos.db')
+        # conn = sqlite3.connect('produtos.db')
+        cogBanco = self.bot.get_cog("Banco_novo")
+        conn = cogBanco.connect_to_railway_mysql()
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO pagamentosAbertos (payment_id, canal_id, usuario_id, produtos)
-                        VALUES (?, ?, ?, ?)''', 
+                        VALUES (%s, %s, %s, %s)''', 
                     (str(external_reference), thread.id, user.id, produtos_json))
-        conn.commit()
-        conn.close()
+        # conn.commit()
+        # conn.close()
 
-        conn = sqlite3.connect('produtos.db')
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM carrinho WHERE usuario = ?", (str(user.id),))
+        # conn = sqlite3.connect('produtos.db')
+        # cursor = conn.cursor()
+        cursor.execute("DELETE FROM carrinho WHERE usuario = %s", (str(user.id),))
         conn.commit()
         conn.close()
 
         await thread.send(f"link para pagamento no valor de R${arredonda}: {checkout_url}")
-
+        await cog1.atualiza_estoque()
         await self.cancela_pg(external_reference, thread)
 
 

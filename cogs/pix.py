@@ -64,12 +64,15 @@ class PixCog(commands.Cog):
             print(produto_id, quantia)
             # conn = sqlite3.connect('produtos.db')
             # cursor = conn.cursor()
+            # cogBanco = self.bot.get_cog("Banco_novo")
+            # conn = cogBanco.connect_to_railway_mysql()
+            # cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM chaves_produtos WHERE produto_id = %s AND ativo = %s ", (produto_id, 0,))
             quantidade = cursor.fetchone()[0]
             # conn.close()
             if quantia > quantidade:
                 await thread.send(f"quantidade de {produto_id} nao disponivel")
-                conn.close()
+                # conn.close()
                 return
             else:
                 # conn = sqlite3.connect('produtos.db')
@@ -93,11 +96,10 @@ class PixCog(commands.Cog):
                     # conn.close()
                     produtos.append(chave)
                     cog1 = self.bot.get_cog("ProdutosCog")
-            conn.commit()
-            conn.close()
-            print(produtos)
-            await cog1.atualiza_estoque()
-
+            
+        print(produtos)
+        conn.commit()
+        conn.close()
 
         await thread.purge(limit=100)
         arredonda = round(valorTotal, 2)
@@ -185,6 +187,7 @@ class PixCog(commands.Cog):
                 conn.commit()
                 conn.close()
 
+                await cog1.atualiza_estoque()
                 await self.cancela_pg(payment_id)
 
             except KeyError:

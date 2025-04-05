@@ -351,7 +351,7 @@ class ProdutosCog(commands.Cog):
             cursor = conn.cursor()
             cursor.execute("SELECT id, titulo, descricao, preco, autor, img_um, img_dois, rodape, cor FROM produtos")
             produtos = cursor.fetchall()
-            conn.close()
+            # conn.close()
 
             if not produtos:
                 await interact.response.send_message("Nenhum produto encontrado.", ephemeral=True)
@@ -368,13 +368,13 @@ class ProdutosCog(commands.Cog):
             for id, titulo, descricao, preco, autor, img_um, img_dois, rodape, cor in produtos:                
                 novo_canal = await categoria.create_text_channel(titulo)
                 # conn = sqlite3.connect('produtos.db') pepes
-                cog1 = self.bot.get_cog("Banco_novo")
-                conn = cog1.connect_to_railway_mysql()
-                cursor = conn.cursor()
+                # cog1 = self.bot.get_cog("Banco_novo")
+                # conn = cog1.connect_to_railway_mysql()
+                # cursor = conn.cursor()
                 cursor.execute('''UPDATE produtos SET chat = %s WHERE id = %s''', 
                                (novo_canal.id, id))
-                conn.commit()
-                conn.close()
+                # conn.commit()
+                # conn.close()
                 
                 meu_embed = discord.Embed(title=titulo, description=f'`{descricao}`')
                 if autor:
@@ -394,6 +394,9 @@ class ProdutosCog(commands.Cog):
 
                 minha_view = views[id]()
                 await novo_canal.send(embed=meu_embed, view=minha_view)
+
+            conn.commit()
+            conn.close()
             await self.atualiza_estoque()
 
     @discord.app_commands.command()

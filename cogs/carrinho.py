@@ -84,7 +84,7 @@ class Carrinho(commands.Cog):
 
             view = discord.ui.View(timeout=None)
             botao_pix = discord.ui.Button(label='❖ Pix', style=discord.ButtonStyle.green)
-            botao_cartao = discord.ui.Button(label='💳 Cartão', style=discord.ButtonStyle.blurple, disabled=True)
+            botao_cartao = discord.ui.Button(label='💳 Cartão', style=discord.ButtonStyle.blurple, disabled=False)
 
             botao_pix.callback = reposta_pix
             botao_cartao.callback = reposta_cartao
@@ -192,6 +192,7 @@ class Carrinho(commands.Cog):
         print('embed ativado')
     
     async def carrinho_novo(self, interact, id):
+        await interact.response.defer(ephemeral=True)
         user = interact.user
         print('cria thread', user, id)
         
@@ -205,7 +206,7 @@ class Carrinho(commands.Cog):
         cursor = conn.cursor()
         cursor.execute("SELECT produto_id, usuario FROM carrinho")
         carrinhos = cursor.fetchall()
-        conn.close()
+        # conn.close()
 
         controle = 0
         for produto_id, usuario in carrinhos:
@@ -214,16 +215,15 @@ class Carrinho(commands.Cog):
                 controle = 1
         if controle == 0:
             # conn = sqlite3.connect('produtos.db') pepes
-            cog1 = self.bot.get_cog("Banco_novo")
-            conn = cog1.connect_to_railway_mysql()
-            cursor = conn.cursor()
+            # cog1 = self.bot.get_cog("Banco_novo")
+            # conn = cog1.connect_to_railway_mysql()
+            # cursor = conn.cursor()
             cursor.execute('''INSERT INTO carrinho (produto_id, usuario, quantia)
                             VALUES (%s, %s, %s)''', 
                         (id, usuarioID, 1))
-            conn.commit()
-            conn.close()
             print('produto adicionado ao carrinho')
-
+        conn.commit()
+        conn.close()
         for topico in canal.threads:
             if usuarioID == topico.name:    
                 await topico.delete()
@@ -239,7 +239,7 @@ class Carrinho(commands.Cog):
         botao_carrinho = discord.ui.Button(label='Ir para o carrinho 🛒', style=discord.ButtonStyle.link, url=f"https://discord.com/channels/1332118871053697027/{thread.id}")
         visao.add_item(botao_carrinho)
         cog1 = self.bot.get_cog("Carrinho")
-        await interact.response.defer(ephemeral=True)
+        # await interact.response.defer(ephemeral=True)
         await cog1.carrinho(user, thread)
         await interact.followup.send('Carrinho criado com sucesso!', view=visao, ephemeral=True) #resposta que permite espera
 
