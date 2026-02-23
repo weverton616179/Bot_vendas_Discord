@@ -1,2 +1,4 @@
 # Bot_vendas_Discord
-bot ded vendas automatizado discord
+bot de vendas automatizado discord
+
+descontinuado
