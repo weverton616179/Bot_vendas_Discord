@@ -12,12 +12,12 @@ class Banco_novo(commands.Cog):
     def connect_to_railway_mysql(self):
         try:
             connection = pymysql.connect(
-                host='hopper.proxy.rlwy.net',
-                port=44999,
-                database='railway',
-                user='root',
-                password='wqWlDNLwuqvyCFTZIFILwaIVFVxzfMtM',
-                charset='utf8mb4',
+                host='----',
+                port=---,
+                database='---',
+                user='---',
+                password='----',
+                charset='---',
                 # cursorclass=pymysql.cursors.DictCursor
             )
             
