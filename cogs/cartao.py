@@ -10,7 +10,7 @@ import asyncio
 class Cartao(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.sdk = mercadopago.SDK("APP_USR-858971298465680-021921-8b0ac97868ffc64211357c5da2beb2fc-259696807")
+        self.sdk = mercadopago.SDK("-------------------------------------------------------")
 
     async def devolveChaves(self, produtos):
         print("devolvechaves")
@@ -203,4 +203,5 @@ class Cartao(commands.Cog):
 
 
 async def setup(bot):
+
     await bot.add_cog(Cartao(bot))
