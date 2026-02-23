@@ -13,7 +13,7 @@ from quart import Quart, request, jsonify
 class PixCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.sdk = mercadopago.SDK("TEST-858971298465680-021921-a974dd4d3bbfe15908060e8e9dd7e1f0-259696807")
+        self.sdk = mercadopago.SDK("---------------------------------------")
         self.app = Quart(__name__)
         self.setup_routes()
         self.bot.loop.create_task(self.run_quart())
@@ -450,4 +450,5 @@ class PixCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(PixCog(bot))
+
     #git status, add ., commit -m "msg", push
